@@ -6,7 +6,40 @@ from db import bytes_to_megabytes
 from pillow_heif import register_heif_opener
 import os
 
+#code from itribs issue#50
 @st.cache_data(show_spinner=True) 
+def fetchAssets(immich_server_url, api_key, timeout, type):
+    if 'fetch_message' not in st.session_state:
+        st.session_state['fetch_message'] = ""
+    message_placeholder = st.empty()
+
+    assets = []
+
+    base_url = immich_server_url.rstrip('/')
+    asset_paths_url = f"{base_url}/api/view/folder/unique-paths"
+    asset_info_url = f"{base_url}/api/view/folder"
+
+    response = requests.get(asset_paths_url, headers={'Accept': 'application/json', 'x-api-key': api_key}, verify=False, timeout=timeout)
+    response.raise_for_status()
+    if response.status_code == 200:
+        paths = response.json()
+    else:
+        st.session_state['fetch_message'] = 'Received an empty response.'
+        paths = []
+
+    for path in paths:
+        if path:
+            response = requests.get(f'{asset_info_url}?path={path}', headers={'Accept': 'application/json', 'x-api-key': api_key}, verify=False, timeout=timeout)
+            if response.status_code == 200:
+                assets.extend(response.json())
+    
+    assets = [asset for asset in assets if asset.get("type") == type]                       
+    st.session_state['fetch_message'] = 'Assets fetched successfully!'
+    message_placeholder.text(st.session_state['fetch_message'])
+
+    return assets
+
+"""@st.cache_data(show_spinner=True) 
 def fetchAssets(immich_server_url, api_key, timeout, type):
     # Initialize messaging and progress
     if 'fetch_message' not in st.session_state:
@@ -52,7 +85,8 @@ def fetchAssets(immich_server_url, api_key, timeout, type):
         assets = []  # Set assets to empty list on other request errors
 
     message_placeholder.text(st.session_state['fetch_message'])
-    return assets
+    return assets"""
+
 
 def getImage(asset_id, immich_server_url,photo_choice,api_key):   
     # Determine whether to fetch the original or thumbnail based on user selection
