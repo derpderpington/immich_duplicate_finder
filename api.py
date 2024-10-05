@@ -39,6 +39,7 @@ def fetchAssets(immich_server_url, api_key, timeout, type):
 
     return assets
 
+
 """@st.cache_data(show_spinner=True) 
 def fetchAssets(immich_server_url, api_key, timeout, type):
     # Initialize messaging and progress
