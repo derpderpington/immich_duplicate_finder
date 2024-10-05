@@ -88,33 +88,43 @@ def fetchAssets(immich_server_url, api_key, timeout, type):
     message_placeholder.text(st.session_state['fetch_message'])
     return assets"""
 
-
-def getImage(asset_id, immich_server_url,photo_choice,api_key):   
+def getImage(asset_id, immich_server_url, photo_choice, api_key):
     # Determine whether to fetch the original or thumbnail based on user selection
     register_heif_opener()
     ImageFile.LOAD_TRUNCATED_IMAGES = True
+
     if photo_choice == 'Thumbnail (fast)':
-        response = requests.request("GET", f"{immich_server_url}/api/asset/thumbnail/{asset_id}?format=JPEG", headers={'Accept': 'application/octet-stream','x-api-key': api_key}, data={})
+        response = requests.get(
+            f"{immich_server_url}/api/asset/thumbnail/{asset_id}?format=JPEG",
+            headers={'Accept': 'application/octet-stream', 'x-api-key': api_key}
+        )
     else:
         asset_download_url = f"{immich_server_url}/api/download/asset/{asset_id}"
-        response = requests.post(asset_download_url, headers={'Accept': 'application/octet-stream', 'x-api-key': api_key}, stream=True)
-        
-    if response.status_code == 200 and 'image/' in response.headers.get('Content-Type', ''):
-        image_bytes = BytesIO(response.content)
-        try:
-            image = Image.open(image_bytes)
-            image.load()  # Force loading the image data while the file is open
-            image_bytes.close()  # Now we can safely close the stream
-            return image
-        except UnidentifiedImageError:
-            print(f"Failed to identify image for asset_id {asset_id}. Content-Type: {response.headers.get('Content-Type')}")
-            image_bytes.close()  # Ensure the stream is closed even if an error occurs
+        response = requests.post(
+            asset_download_url,
+            headers={'Accept': 'application/octet-stream', 'x-api-key': api_key},
+            stream=True
+        )
+
+    if response.status_code == 200:
+        content_type = response.headers.get('Content-Type', '')
+        if 'image/' in content_type:
+            image_bytes = BytesIO(response.content)
+            try:
+                image = Image.open(image_bytes)
+                image.load()  # Force loading the image data while the file is open
+                return image
+            except UnidentifiedImageError:
+                print(f"Failed to identify image for asset_id {asset_id}. Content-Type: {content_type}")
+                return None
+        elif 'application/json' in content_type:
+            print(f"Received JSON for asset_id {asset_id}: {response.content.decode()}")
             return None
-        finally:
-            image_bytes.close()  # Ensure the stream is always closed
-            del image_bytes 
+        else:
+            print(f"Unexpected Content-Type for asset_id {asset_id}: {content_type}")
+            return None
     else:
-        print(f"Skipping non-image asset_id {asset_id} with Content-Type: {response.headers.get('Content-Type')}")
+        print(f"Failed to fetch asset_id {asset_id}. Status Code: {response.status_code}")
         return None
 
 def getAssetInfo(asset_id, assets):
