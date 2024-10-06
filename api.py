@@ -155,7 +155,7 @@ def getServerStatistics(immich_server_url, api_key):
     
 def deleteAsset(immich_server_url, asset_id, api_key):
     st.session_state['show_faiss_duplicate'] = False
-    url = f"{immich_server_url}/api/asset"
+    url = f"{immich_server_url}/api/assets"
     payload = json.dumps({
         "force": True,
         "ids": [asset_id]
@@ -184,7 +184,7 @@ def deleteAsset(immich_server_url, asset_id, api_key):
         return False
 
 def updateAsset(immich_server_url, asset_id, api_key, dateTimeOriginal, description, isFavorite, latitude, longitude, isArchived):
-    url = f"{immich_server_url}/api/asset/{asset_id}"  # Ensure the URL is constructed correctly
+    url = f"{immich_server_url}/api/assets/{asset_id}"  # Ensure the URL is constructed correctly
     
     payload = json.dumps({
         "dateTimeOriginal": dateTimeOriginal,
